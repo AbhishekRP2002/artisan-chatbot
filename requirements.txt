@@ -1,0 +1,14 @@
+fastapi==0.111.1
+uvicorn==0.22.0
+langchain==0.3.14
+langchain-milvus==0.1.7
+langchain-openai==0.2.10
+langchain-community==0.3.14
+langchain-core==0.3.29
+langchain-sambanova==0.1.0
+langchain-text-splitters==0.3.4
+python-dotenv==1.0.1
+pydantic==2.10.6
+firecrawl-py==1.11.1
+tenacity==8.4.2
+langchain-experimental==0.3.4
