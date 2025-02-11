@@ -25,4 +25,4 @@ services:
     autoDeploy: true
     region: frankfurt
     buildCommand: pip install -r requirements_cl.txt
-    startCommand: chainlit run src/app.py -h --port $PORT
+    startCommand: chainlit run chainlit_app.py -h --port $PORT
