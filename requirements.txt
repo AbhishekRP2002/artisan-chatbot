@@ -1,5 +1,5 @@
 fastapi==0.115.3
-uvicorn==0.22.0
+uvicorn==0.25.0
 langchain==0.3.14
 langchain-milvus==0.1.7
 langchain-openai==0.2.10
