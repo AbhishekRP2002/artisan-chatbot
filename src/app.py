@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from .rag_core import get_response
 from datetime import datetime
 import uvicorn
+import os
+from chainlit.utils import mount_chainlit
 
 app = FastAPI(
     title="Artisan Support Chatbot",
@@ -59,6 +61,11 @@ async def http_exception_handler(request, exc):
         content={"detail": exc.detail, "code": f"ERROR_{exc.status_code}"},
     )
 
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHAINLIT_APP_PATH = os.path.join(SCRIPT_DIR, "chainlit_app.py")
+
+mount_chainlit(app=app, target=CHAINLIT_APP_PATH, path="/chainlit")
 
 if __name__ == "__main__":
     uvicorn.run("src.app:app", host="0.0.0.0", port=8000, reload=True)
