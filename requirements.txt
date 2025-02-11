@@ -13,3 +13,4 @@ firecrawl-py==1.11.1
 tenacity==8.4.2
 langchain-experimental==0.3.4
 chainlit==2.2.0
+rich==13.7.1
