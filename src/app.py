@@ -2,11 +2,13 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from .rag_core import get_response
+from .rag_core import ChatbotRAG
 from datetime import datetime
 import uvicorn
 import os
 from chainlit.utils import mount_chainlit
+
+chatbot = ChatbotRAG()
 
 app = FastAPI(
     title="Artisan Support Chatbot",
@@ -37,7 +39,7 @@ async def chat(message: ChatMessage):
     try:
         query = message.message
         session_id = message.session_id
-        response = get_response(query, session_id)
+        response = chatbot.get_response(query=query, session_id=session_id)
         return ChatResponse(response=response)
     except Exception as e:
         raise HTTPException(

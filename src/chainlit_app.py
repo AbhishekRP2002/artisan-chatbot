@@ -23,7 +23,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.utils import get_vs_as_retriever
 from src.prompts import BASE_SYSTEM_PROMPT
-from src.rag_core import get_session_history
+from src.rag_core import ChatbotRAG
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -60,6 +60,7 @@ chat_api = ChatAPI()
 
 @cl.on_chat_start
 async def on_chat_start():
+    chatbot_obj = ChatbotRAG()
     streaming_llm = ChatSambaNovaCloud(
         sambanova_api_key=os.environ.get("SAMBANOVA_API_KEY"),
         model="Meta-Llama-3.3-70B-Instruct",
@@ -115,7 +116,7 @@ async def on_chat_start():
 
     conversational_rag_chain_runnable = RunnableWithMessageHistory(
         rag_chain,
-        get_session_history,
+        chatbot_obj.get_session_history,
         input_messages_key="input",
         history_messages_key="chat_history",
         output_messages_key="answer",
@@ -140,7 +141,7 @@ async def set_starters():
         ),
         cl.Starter(
             label="Generate Sample Email",
-            message="Explain the 'Generate Sample Email feature and how to use it via the Artisan Platform.",
+            message="Explain the 'Generate Sample Email' feature and how to use it via the Artisan Platform.",
         ),
     ]
 
@@ -178,16 +179,6 @@ async def main(message: cl.Message):
         # # Update the message with the API response
         # llm_response = response.get("response", "No response received.")
         # await cl.Message(content=llm_response).send()
-
-        # If source references are available, append them as additional elements
-        # metadata = response.get("metadata", {})
-        # if "sources" in metadata:
-        #     sources = metadata["sources"]
-        #     elements = [
-        #         cl.Text(name=f"Source {i+1}", content=source)
-        #         for i, source in enumerate(sources)
-        #     ]
-        #     await msg.update(elements=elements)
 
     except Exception as e:
         error_msg = f"Error: {str(e)}"
