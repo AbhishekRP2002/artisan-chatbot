@@ -35,10 +35,10 @@ embedding_model = AzureOpenAIEmbeddings(
 def get_milvus_vector_store():
     return Milvus(
         embedding_function=embedding_model,
-        collection_name="test",
+        collection_name="test_collection",
         connection_args={"uri": os.getenv("MILVUS_URI")},
         auto_id=True,
-        drop_old=True,
+        drop_old=False,
         index_params={
             "index_type": "HNSW",
             "metric_type": "COSINE",
