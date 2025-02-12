@@ -35,6 +35,8 @@ llm_azure = AzureChatOpenAI(
     max_tokens=1024,
 )
 
+final_model = llm.with_fallbacks([llm_azure])
+
 retriever = get_vs_as_retriever()
 
 
@@ -63,7 +65,7 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}"),
     ]
 )
-qa_chain = create_stuff_documents_chain(llm, prompt)
+qa_chain = create_stuff_documents_chain(final_model, prompt)
 rag_chain = create_retrieval_chain(
     retriever=history_aware_retriever, combine_docs_chain=qa_chain
 )
