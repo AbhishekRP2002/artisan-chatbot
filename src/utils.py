@@ -2,7 +2,7 @@
 extract documents and store them in a vector db as a collection
 """
 
-from .web_scrape import scrape_main
+from src.web_scrape import scrape_main
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_milvus import Milvus
 import os
