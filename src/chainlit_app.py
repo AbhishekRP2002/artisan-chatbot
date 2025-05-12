@@ -17,7 +17,8 @@ from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.schema.runnable import Runnable
 from langchain.schema.runnable.config import RunnableConfig
-from typing import cast
+from chainlit.input_widget import TextInput
+from typing import cast, Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -58,9 +59,36 @@ class ChatAPI:
 chat_api = ChatAPI()
 
 
+@cl.oauth_callback
+def oauth_callback(
+    provider_id: str,
+    token: str,
+    raw_user_data: Dict[str, str],
+    default_user: cl.User,
+) -> Optional[cl.User]:
+    return default_user
+
+
 @cl.on_chat_start
 async def on_chat_start():
+    settings = await cl.ChatSettings(
+        [
+            TextInput(
+                id="company_domain",
+                label="Company Domain",
+                initial="artisan.co",
+                placeholder="Enter company domain (e.g., example.com)",
+                description="Enter the domain of the company you want to chat about",
+            ),
+        ]
+    ).send()
+
+    company_domain = settings["company_domain"]
+
+    cl.user_session.set("company_domain", company_domain)
+
     chatbot_obj = ChatbotRAG()
+
     streaming_llm = ChatSambaNovaCloud(
         sambanova_api_key=os.environ.get("SAMBANOVA_API_KEY"),
         model="Meta-Llama-3.3-70B-Instruct",
@@ -82,7 +110,7 @@ async def on_chat_start():
 
     final_model = streaming_llm.with_fallbacks([streaming_llm_azure])
 
-    retriever = get_vs_as_retriever()
+    retriever = get_vs_as_retriever()  # NOTE: This should be replaced with the actual retriever based on data source maybe ?
 
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
@@ -99,12 +127,15 @@ async def on_chat_start():
             ("human", "{input}"),
         ]
     )
+
+    company_system_prompt = f"{BASE_SYSTEM_PROMPT}\nYou are an assistant specialized in providing information about {company_domain}. Only answer questions related to this company."
+
     history_aware_retriever = create_history_aware_retriever(
         streaming_llm, retriever, contextualize_q_prompt
     )
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", BASE_SYSTEM_PROMPT),
+            ("system", company_system_prompt),
             MessagesPlaceholder("chat_history", n_messages=10),
             ("human", "{input}"),
         ]
@@ -122,6 +153,10 @@ async def on_chat_start():
         output_messages_key="answer",
     )
     cl.user_session.set("runnable", conversational_rag_chain_runnable)
+
+    await cl.Message(
+        content="Hi there, I am Alice, your AI powered company chatbot. Configure the domain of the company you want to chat about from the settings panel present on the left on your input box. "
+    ).send()
 
 
 @cl.set_starters

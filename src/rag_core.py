@@ -33,9 +33,9 @@ class ChatbotRAG:
         )
 
         llm_azure = AzureChatOpenAI(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             temperature=0.1,
-            azure_deployment="gpt-4o-mini",
+            azure_deployment="gpt-4o",
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             api_version="2024-07-01-preview",
