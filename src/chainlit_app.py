@@ -71,24 +71,39 @@ def oauth_callback(
 
 @cl.on_chat_start
 async def on_chat_start():
-    settings = await cl.ChatSettings(
-        [
-            TextInput(
-                id="company_domain",
-                label="Company Domain",
-                initial="artisan.co",
-                placeholder="Enter company domain (e.g., example.com)",
-                description="Enter the domain of the company you want to chat about",
-            ),
-        ]
-    ).send()
+    max_attempts = 3
+    attempt = 0
+    company_name = None
 
-    company_domain = settings["company_domain"]
+    while attempt < max_attempts:
+        try:
+            company_domain_msg = cl.AskUserMessage(
+                content="Please enter the company domain you want to chat about (e.g., example.com):",
+                timeout=300,
+                raise_on_timeout=True,
+            )
+            response = await company_domain_msg.send()
+            company_name = response["output"]
+            if company_name and company_name.strip():
+                cl.user_session.set("company_domain", company_name)
+                print(f"Company domain set to: {company_name}")
+                break
+        except Exception:
+            attempt += 1
+            if attempt < max_attempts:
+                await cl.Message(
+                    content=f"No company domain was provided. You have {max_attempts - attempt} attempt(s) left to enter a valid company domain."
+                ).send()
+            else:
+                await cl.Message(
+                    content="No company domain was provided after 3 attempts. Please refresh and try again, or contact support if the issue persists."
+                ).send()
+                return
 
-    cl.user_session.set("company_domain", company_domain)
+    if not company_name:
+        return
 
     chatbot_obj = ChatbotRAG()
-
     streaming_llm = ChatSambaNovaCloud(
         sambanova_api_key=os.environ.get("SAMBANOVA_API_KEY"),
         model="Meta-Llama-3.3-70B-Instruct",
@@ -96,7 +111,6 @@ async def on_chat_start():
         max_tokens=1024,
         streaming=True,
     )
-
     streaming_llm_azure = AzureChatOpenAI(
         model="gpt-4o-mini",
         temperature=0.1,
@@ -107,11 +121,8 @@ async def on_chat_start():
         max_tokens=1024,
         streaming=True,
     )
-
     final_model = streaming_llm.with_fallbacks([streaming_llm_azure])
-
-    retriever = get_vs_as_retriever()  # NOTE: This should be replaced with the actual retriever based on data source maybe ?
-
+    retriever = get_vs_as_retriever()
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
@@ -119,7 +130,6 @@ async def on_chat_start():
         "without the chat history. Do NOT answer the question, "
         "just reformulate it if needed and otherwise return it as is."
     )
-
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualize_q_system_prompt),
@@ -127,9 +137,7 @@ async def on_chat_start():
             ("human", "{input}"),
         ]
     )
-
-    company_system_prompt = f"{BASE_SYSTEM_PROMPT}\nYou are an assistant specialized in providing information about {company_domain}. Only answer questions related to this company."
-
+    company_system_prompt = f"{BASE_SYSTEM_PROMPT}\nYou are an assistant specialized in providing information about {company_name}. Only answer questions related to this company."
     history_aware_retriever = create_history_aware_retriever(
         streaming_llm, retriever, contextualize_q_prompt
     )
@@ -144,7 +152,6 @@ async def on_chat_start():
     rag_chain = create_retrieval_chain(
         retriever=history_aware_retriever, combine_docs_chain=qa_chain
     )
-
     conversational_rag_chain_runnable = RunnableWithMessageHistory(
         rag_chain,
         chatbot_obj.get_session_history,
@@ -155,30 +162,8 @@ async def on_chat_start():
     cl.user_session.set("runnable", conversational_rag_chain_runnable)
 
     await cl.Message(
-        content="Hi there, I am Alice, your AI powered company chatbot. Configure the domain of the company you want to chat about from the settings panel present on the left on your input box. "
+        content=f"Hi there, I am Alice, your AI powered chatbot for {company_name}. Ask me anything about {company_name}."
     ).send()
-
-
-@cl.set_starters
-async def set_starters():
-    return [
-        cl.Starter(
-            label="Can Ava access my CRM?",
-            message="Can Ava access my CRM?",
-        ),
-        cl.Starter(
-            label="Ava, the Top-Rated AI SDR on the market",
-            message="How can Ava help in automating my SDR workflows in my sales pipelines or my outbound demand generation process?",
-        ),
-        cl.Starter(
-            label="Create a Campaign",
-            message="How can Artisan help in creating a campaign to engage potential leads effectively?",
-        ),
-        cl.Starter(
-            label="Generate Sample Email",
-            message="Explain the 'Generate Sample Email' feature and how to use it via the Artisan Platform.",
-        ),
-    ]
 
 
 @cl.on_message
